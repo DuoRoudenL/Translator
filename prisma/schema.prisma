@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Language {
+  russian
+  english
+}
+
+enum PathOfSpeech {
+  noun
+  adjective
+  verb
+}
+
+model users {
+  user_id          Int        @id @default(autoincrement())
+  user_name   String     @unique
+  password    String
+  email       String     @unique
+  words_group words_group[]
+  tests tests[]
+}
+
+model words_group {
+  group_id    Int        @id @default(autoincrement())
+  user_id     Int
+  group_name  String     @unique
+  created_at  DateTime
+  updated_at  DateTime
+  user        users       @relation(fields: [user_id], references: [user_id])
+  words       words[] 
+  tests tests[]    
+  translation   translations[]
+}
+
+model words {
+  word_id       Int      @id @default(autoincrement())
+  group_id      Int
+  word          String
+  language_id   Int
+  part_of_speech PathOfSpeech
+  words_group    words_group @relation(fields: [group_id], references: [group_id])
+  language      languages   @relation(fields: [language_id], references: [language_id])
+  original_translations translations[] @relation("OriginalWord")
+  translated_translations translations[] @relation("TranslatedWord")
+}
+
+model tests {
+  test_id    Int      @id @default(autoincrement())
+  group_id   Int
+  user_id    Int
+  created_at DateTime
+  words_group words_group @relation(fields: [group_id], references: [group_id])
+  user       users       @relation(fields: [user_id], references: [user_id])
+  test_result       test_results[]
+  question            questions[]
+}
+
+model test_results {
+  result_id Int   @id @default(autoincrement())
+  test_id   Int
+  score     Int
+  test      tests  @relation(fields: [test_id], references: [test_id])
+}
+
+model translations {
+  translation_id      Int      @id @default(autoincrement())
+  original_word_id    Int
+  original_language_id Int
+  translated_word_id  Int
+  translated_language_id Int
+  group_id            Int
+  original_word words @relation("OriginalWord", fields: [original_word_id], references: [word_id])
+  translated_word words @relation("TranslatedWord", fields: [translated_word_id], references: [word_id])
+  original_language languages @relation("OriginalLanguage", fields: [original_language_id], references: [language_id])
+  translated_language languages @relation("TranslatedLanguage", fields: [translated_language_id], references: [language_id])
+  words_group          words_group @relation(fields: [group_id], references: [group_id])
+  question            questions[]
+}
+
+model questions {
+  question_id   Int      @id @default(autoincrement())
+  translation_id Int
+  test_id       Int
+  is_direct     Boolean
+  translation   translations @relation(fields: [translation_id], references: [translation_id])
+  test          tests        @relation(fields: [test_id], references: [test_id])
+  answer        answers[]
+}
+
+model answers {
+  answer_id   Int      @id @default(autoincrement())
+  question_id Int
+  is_correct  Boolean
+  question    questions @relation(fields: [question_id], references: [question_id])
+}
+
+model languages {
+  language_id Int    @id @default(autoincrement())
+  language    Language
+  original_translations translations[] @relation("OriginalLanguage")
+  translated_translations translations[] @relation("TranslatedLanguage")
+  words words[]
+}
